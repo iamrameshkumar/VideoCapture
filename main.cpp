@@ -4,7 +4,7 @@
 #include <mfapi.h>
 #include "ScreenSampleProvider.h"
 #include <common.h>
-#include "dirtyhacks.h"
+//#include "dirtyhacks.h"
 using namespace std;
 
 #pragma comment (lib, "evr")
@@ -29,7 +29,6 @@ const UINT32 VIDEO_FRAME_COUNT = 20 * VIDEO_FPS;
 
 ScreenSampleProvider provider(nullptr);
 
-DWORD videoFrameBuffer[VIDEO_PELS];
 HRESULT WriteFrame(
 	IMFSinkWriter *pWriter,
 	DWORD streamIndex,
@@ -37,89 +36,22 @@ HRESULT WriteFrame(
 	)
 {
 	IMFSample *pSample = NULL;
-	IMFMediaBuffer *pBuffer = NULL;
+	HRESULT hr;
 
-	const LONG cbWidth = 4 * VIDEO_WIDTH;
-	const DWORD cbBuffer = cbWidth * VIDEO_HEIGHT;
-
-	BYTE *pData = NULL;
-
-	// Create a new memory buffer.
-
-	HRESULT hr = MFCreateMemoryBuffer(cbBuffer, &pBuffer);
-	provider.getSample(nullptr);
-	IMFMediaBuffer * dbuf;
-//	hr = pMFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, provider.g_pSurface, false, &dbuf); // kill me please
-	D3DLOCKED_RECT rect;
-	provider.g_pSurface->LockRect(&rect, nullptr, D3DLOCK_READONLY);
-
-	// Lock the buffer and copy the video frame to the buffer.
-	if (SUCCEEDED(hr))
-	{
-		hr = pBuffer->Lock(&pData, NULL, NULL);
-	}
-	if (SUCCEEDED(hr))
-	{
-		hr = MFCopyImage(
-			pData,                      // Destination buffer.
-			cbWidth,                    // Destination stride.
-			(BYTE*)rect.pBits,    // First row in source image.
-			cbWidth,                    // Source stride.
-			cbWidth,                    // Image width in bytes.
-			VIDEO_HEIGHT                // Image height in pixels.
-			);
-	}
-	if (pBuffer)
-	{
-		pBuffer->Unlock();
-	}
-	provider.g_pSurface->UnlockRect();
-
-	// Set the data length of the buffer.
-	if (SUCCEEDED(hr))
-	{
-		hr = pBuffer->SetCurrentLength(cbBuffer);
-	}
-
-	// Create a media sample and add the buffer to the sample.
-	if (SUCCEEDED(hr))
-	{
-//		hr = provider.getSample(&pSample);
-		hr = MFCreateSample(&pSample);
-	}
-	if (FAILED(hr))
-	{
-		cout << "getSample failed" << endl;
-	}
-	if (SUCCEEDED(hr))
-	{
-//		IMFMediaBuffer * buf;
-//		DWORD cnt;
-//		hr = pSample->GetBufferByIndex(0, &buf);
-//		hr = buf->GetCurrentLength(&cnt);
-//		cout << "buf len = " << cnt << endl;
-//		cout << "cbBuffer = " << cbBuffer << endl;
-		hr = pSample->AddBuffer(pBuffer);
-	}
+	hr = provider.getSample(&pSample);
 
 	// Set the time stamp and the duration.
 	if (SUCCEEDED(hr))
-	{
 		hr = pSample->SetSampleTime(rtStart);
-	}
 	if (SUCCEEDED(hr))
-	{
 		hr = pSample->SetSampleDuration(VIDEO_FRAME_DURATION);
-	}
 
 	// Send the sample to the Sink Writer.
 	if (SUCCEEDED(hr))
-	{
 		hr = pWriter->WriteSample(streamIndex, pSample);
-	}
 
 	SAFE_RELEASE(pSample);
-	SAFE_RELEASE(pBuffer);
+	
 	return hr;
 }
 
@@ -134,8 +66,7 @@ HRESULT InitializeSinkWriter(IMFSinkWriter **ppWriter, DWORD *pStreamIndex)
 	DWORD           streamIndex;
 
 	HRESULT hr = MFCreateSinkWriterFromURL(L"output.mp4", nullptr, nullptr, &pSinkWriter);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		cout << "couldn't create SinkWriter";
 	}
 
@@ -177,16 +108,13 @@ HRESULT InitializeSinkWriter(IMFSinkWriter **ppWriter, DWORD *pStreamIndex)
 	if (SUCCEEDED(hr))
 		hr = MFSetAttributeRatio(pMediaTypeIn, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
 	if (SUCCEEDED(hr))
-		hr = pSinkWriter->SetInputMediaType(streamIndex, pMediaTypeIn, NULL);
+		hr = pSinkWriter->SetInputMediaType(streamIndex, pMediaTypeIn, nullptr);
 	// Tell the sink writer to start accepting data.
 	if (SUCCEEDED(hr))
-	{
 		hr = pSinkWriter->BeginWriting();
-	}
 
 	// Return the pointer to the caller.
-	if (SUCCEEDED(hr))
-	{
+	if (SUCCEEDED(hr)) {
 		*ppWriter = pSinkWriter;
 		(*ppWriter)->AddRef();
 		*pStreamIndex = streamIndex;
@@ -201,13 +129,6 @@ HRESULT InitializeSinkWriter(IMFSinkWriter **ppWriter, DWORD *pStreamIndex)
 
 int main()
 {
-	for (int i = 0; i < VIDEO_HEIGHT; ++i)
-	{
-		for (int j = 0; j < VIDEO_WIDTH; ++j) {
-			videoFrameBuffer[i * VIDEO_WIDTH + j] = i*i - j*j;
-		}
-	}
-
 	IMFSinkWriter * pSinkWriter;
 	DWORD streamIndex;
 	HRESULT hr;
@@ -227,10 +148,8 @@ int main()
 		return 0;
 	}
 
-	for (int i = 0; i < VIDEO_FRAME_COUNT; ++i) {
-		cout << "i=" << i << endl;
-//		IMFSample * pSample;
-//		HRESULT hr = provider.getSample(&pSample);
+	for (size_t i = 0; i < VIDEO_FRAME_COUNT; ++i) {
+		cout << "i=" << i << '\n';
 		if (FAILED(hr))	{
 			cout << "Couldn't get sample";
 			break;
@@ -241,6 +160,8 @@ int main()
 			break;
 		}
 	}
+	if (SUCCEEDED(hr))
+		cout << "Finalizing the SinkWriter" << endl;
 	pSinkWriter->Finalize();
 	SAFE_RELEASE(pSinkWriter);
 	MFShutdown();
