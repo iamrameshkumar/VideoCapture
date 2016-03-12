@@ -1,10 +1,12 @@
 #include <iostream>
+
 #include <mfidl.h>
 #include <mfreadwrite.h>
 #include <mfapi.h>
+
 #include "ScreenSampleProvider.h"
-#include <common.h>
-//#include "dirtyhacks.h"
+#include "GDISampleProvider.h"
+
 using namespace std;
 
 #pragma comment (lib, "evr")
@@ -17,28 +19,53 @@ using namespace std;
 
 
 // Format constants
-const UINT32 VIDEO_WIDTH = 1600;
-const UINT32 VIDEO_HEIGHT = 900;
+static const int VIDEO_WIDTH = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+static const int VIDEO_HEIGHT = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 const UINT32 VIDEO_FPS = 30;
-const UINT64 VIDEO_FRAME_DURATION = 10 * 1000 * 1000 / VIDEO_FPS;
+const UINT64 VIDEO_FRAME_DURATION = 10'000'000 / VIDEO_FPS;
 const UINT32 VIDEO_BIT_RATE = 8'000'000;
 const GUID   VIDEO_ENCODING_FORMAT = MFVideoFormat_H264;
 const GUID   VIDEO_INPUT_FORMAT = MFVideoFormat_RGB32;
-const UINT32 VIDEO_PELS = VIDEO_WIDTH * VIDEO_HEIGHT;
 const UINT32 VIDEO_FRAME_COUNT = 20 * VIDEO_FPS;
 
 ScreenSampleProvider provider(nullptr);
+GDISampleProvider gprovider(nullptr);
+
+
+struct perf_counter
+{
+	perf_counter() {
+		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&freq));
+	}
+	int64_t get_freq() const {
+		return freq;
+	}
+	int64_t value() {
+		int64_t val;
+		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&val));
+		return val;
+	}
+
+private:
+	int64_t freq;
+} counter;
+
+int64_t cycles_elapsed_write = 0;
+int64_t cycles_elapsed_getsample = 0;
 
 HRESULT WriteFrame(
 	IMFSinkWriter *pWriter,
 	DWORD streamIndex,
-	const LONGLONG& rtStart        // Time stamp.
+	LONGLONG rtStart        // Time stamp.
 	)
 {
-	IMFSample *pSample = NULL;
+	CComPtr<IMFSample> pSample;
 	HRESULT hr;
-
-	hr = provider.getSample(&pSample);
+	{
+		auto cnt_val = counter.value();
+		hr = gprovider.GetSample(&pSample);
+		cycles_elapsed_getsample += counter.value() - cnt_val;
+	}
 
 	// Set the time stamp and the duration.
 	if (SUCCEEDED(hr))
@@ -47,11 +74,12 @@ HRESULT WriteFrame(
 		hr = pSample->SetSampleDuration(VIDEO_FRAME_DURATION);
 
 	// Send the sample to the Sink Writer.
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr)) {
+		auto cnt_val = counter.value();
 		hr = pWriter->WriteSample(streamIndex, pSample);
+		cycles_elapsed_write += counter.value() - cnt_val;
+	}
 
-	SAFE_RELEASE(pSample);
-	
 	return hr;
 }
 
@@ -60,15 +88,14 @@ HRESULT InitializeSinkWriter(IMFSinkWriter **ppWriter, DWORD *pStreamIndex)
 	*ppWriter = nullptr;
 	*pStreamIndex = 0;
 
-	IMFSinkWriter   *pSinkWriter = nullptr;
-	IMFMediaType    *pMediaTypeOut = nullptr;
-	IMFMediaType    *pMediaTypeIn = nullptr;
-	DWORD           streamIndex;
+	CComPtr<IMFSinkWriter> pSinkWriter = nullptr;
+	CComPtr<IMFMediaType>  pMediaTypeOut = nullptr;
+	CComPtr<IMFMediaType>  pMediaTypeIn = nullptr;
+	DWORD                  streamIndex;
 
 	HRESULT hr = MFCreateSinkWriterFromURL(L"output.mp4", nullptr, nullptr, &pSinkWriter);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
 		cout << "couldn't create SinkWriter";
-	}
 
 	// Set the output media type.
 	if (SUCCEEDED(hr))
@@ -120,52 +147,48 @@ HRESULT InitializeSinkWriter(IMFSinkWriter **ppWriter, DWORD *pStreamIndex)
 		*pStreamIndex = streamIndex;
 	}
 
-	SAFE_RELEASE(pSinkWriter);
-	SAFE_RELEASE(pMediaTypeOut);
-	SAFE_RELEASE(pMediaTypeIn);
 	return hr;
 }
 
 
 int main()
 {
-	IMFSinkWriter * pSinkWriter;
-	DWORD streamIndex;
-	HRESULT hr;
-	hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-	if (FAILED(hr)) {
-		cerr << "couldn't CoInitialize" << endl;
-		return 0;
-	}
-	hr = MFStartup(MF_VERSION);
-	if (FAILED(hr)) {
-		cerr << "couldn't MFStartup" << endl;
-		return 0;
-	}
-	hr = InitializeSinkWriter(&pSinkWriter, &streamIndex);
-	if (FAILED(hr)) {
-		cerr << "couldn't initialize SinkWriter" << endl;
-		return 0;
-	}
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	if (FAILED(hr))
+		throw runtime_error("couldn't CoInitializeEx");
 
-	for (size_t i = 0; i < VIDEO_FRAME_COUNT; ++i) {
-		cout << "i=" << i << '\n';
-		if (FAILED(hr))	{
-			cout << "Couldn't get sample";
-			break;
+	hr = MFStartup(MF_VERSION);
+	if (FAILED(hr)) 
+		throw runtime_error("couldn't MFStartup");
+	int64_t total_cycles;
+
+	{ // scope for SinkWriter lifetime
+		CComPtr<IMFSinkWriter> pSinkWriter;
+		DWORD streamIndex;
+		hr = InitializeSinkWriter(&pSinkWriter, &streamIndex);
+		if (FAILED(hr)) {
+			cerr << "couldn't initialize SinkWriter" << endl;
+			return 0;
 		}
-		hr = WriteFrame(pSinkWriter, streamIndex, VIDEO_FRAME_DURATION * i);
-		if (FAILED(hr))	{
-			cout << "couldn't write sample" << endl;
-			break;
+		total_cycles = counter.value();
+		for (size_t i = 0; i < VIDEO_FRAME_COUNT; ++i) {
+//			cerr << "i=" << i << '\n';
+			hr = WriteFrame(pSinkWriter, streamIndex, VIDEO_FRAME_DURATION * i);
+			if (FAILED(hr)) {
+				cerr << "couldn't write sample" << endl;
+				break;
+			}
 		}
+		total_cycles = counter.value() - total_cycles;
+		cerr << "Finalizing the SinkWriter" << endl;
+		pSinkWriter->Finalize();
 	}
-	if (SUCCEEDED(hr))
-		cout << "Finalizing the SinkWriter" << endl;
-	pSinkWriter->Finalize();
-	SAFE_RELEASE(pSinkWriter);
 	MFShutdown();
 	CoUninitialize();
-
-	cout << "Hello, world!" << endl;
+	cout << "Total cycles elapsed for getting samples: " << cycles_elapsed_getsample << endl;
+	cout << "Total cycles elapsed for writing samples: " << cycles_elapsed_write << endl;
+	double total_time = (double)total_cycles / counter.get_freq();
+	cout << "Total cycles elapsed for capturing:       " << total_cycles << " (" << total_time << " s.)" << endl;
+	cout << "Average capturing FPS is " << VIDEO_FRAME_COUNT / total_time << endl;
 }
+
