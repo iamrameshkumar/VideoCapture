@@ -1,8 +1,5 @@
-﻿#include "GDISampleProvider.h"
-#include <evr.h>
-#include <mfapi.h>
-#include <d3dx9tex.h>
-#include <atlcomcli.h>
+﻿#include "stdafx.h"
+#include "GDISampleProvider.h"
 #include <cassert>
 
 static const int VIDEO_WIDTH = 1600;
@@ -26,12 +23,12 @@ GDISampleProvider::~GDISampleProvider()
 	DeleteDC(hDest);
 }
 
-HRESULT GDISampleProvider::GetSample(IMFSample** ppSample)
+HRESULT GDISampleProvider::GetSample(IMFSample** ppSample) const
 {
 	BOOL b = BitBlt(hDest, 0, 0, width, height, hdc, 0, 0, SRCCOPY);
 	assert(b);
 	BYTE * pixels;
-	CComPtr<IMFMediaBuffer> pBuffer;
+	IMFMediaBufferPtr pBuffer;
 	HRESULT hr = MFCreateMemoryBuffer(length, &pBuffer);
 
 	BITMAPINFOHEADER   bi;

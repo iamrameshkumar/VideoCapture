@@ -1,14 +1,14 @@
 ﻿#pragma once
 //#include <wincon.h>
-#include <mfobjects.h>
+//#include <mfobjects.h>
 #include "SampleProvider.h"
 
-class GDISampleProvider : SampleProvider
+class GDISampleProvider : public SampleProvider
 {
 public:
 	GDISampleProvider(HWND hWnd);
 	~GDISampleProvider();
-	HRESULT GetSample(IMFSample ** ppSample) override;
+	HRESULT GetSample(IMFSample ** ppSample) const override;
 private:
 	HDC hdc;
 	HDC hDest;
