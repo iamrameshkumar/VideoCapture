@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include <mfobjects.h>
+#include <boost/noncopyable.hpp>
 
-struct SampleProvider
+struct SampleProvider : boost::noncopyable
 {
-	virtual HRESULT GetSample(IMFSample** ppSample) = 0;
+	virtual HRESULT GetSample(IMFSample** ppSample) const = 0;
 	virtual ~SampleProvider() = 0;
 };
 
