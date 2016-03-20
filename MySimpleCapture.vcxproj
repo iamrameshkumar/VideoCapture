@@ -109,6 +109,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +142,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,11 +152,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DesktopDuplicationSampleProvider.cpp" />
-    <ClCompile Include="GDISampleProvider.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="DirectXSampleProvider.cpp" />
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="src\DesktopDuplicationSampleProvider.cpp" />
+    <ClCompile Include="src\GDISampleProvider.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\DirectXSampleProvider.cpp" />
+    <ClCompile Include="src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -162,12 +164,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DesktopDuplicationSampleProvider.h" />
-    <ClInclude Include="dirtyhacks.h" />
-    <ClInclude Include="GDISampleProvider.h" />
-    <ClInclude Include="SampleProvider.h" />
-    <ClInclude Include="DirectXSampleProvider.h" />
-    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="headers\DesktopDuplicationSampleProvider.h" />
+    <ClInclude Include="headers\GDISampleProvider.h" />
+    <ClInclude Include="headers\SampleProvider.h" />
+    <ClInclude Include="headers\DirectXSampleProvider.h" />
+    <ClInclude Include="headers\stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

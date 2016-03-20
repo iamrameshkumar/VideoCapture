@@ -159,6 +159,7 @@ HRESULT Capture(const SampleProvider & provider, IMFSinkWriter * pWriter, DWORD 
 
 int main()
 {
+	HRESULT hr;
 	COMWrapper com_wrapper;
 	MFWrapper   mf_wrapper;
 
