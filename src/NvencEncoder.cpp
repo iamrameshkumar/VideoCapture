@@ -18,10 +18,10 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		throw std::runtime_error((std::string("cannot load ") + (char*)encodeLibName));
 
 	PNVENCODEAPICREATEINSTANCE NvEncodeAPICreateInstance =
-		(PNVENCODEAPICREATEINSTANCE)GetProcAddress(nvenc_lib_, "NvEncodeAPICreateInstance");
+		(PNVENCODEAPICREATEINSTANCE)GetProcAddress(nvenc_lib_, "NvEncodeAPICreateInstance" );
 	if (!NvEncodeAPICreateInstance)
 		throw std::runtime_error("cannot load \"NvEncodeAPICreateInstance\" function");
-
+    nvenc_.version = NV_ENCODE_API_FUNCTION_LIST_VER;
 	NVENCSTATUS status = NvEncodeAPICreateInstance(&nvenc_);
 
 	if (status == NV_ENC_SUCCESS) {
@@ -45,15 +45,17 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		NV_ENC_CONFIG_H264 h264_config{};
 		//h264_config.idrPeriod
 		NV_ENC_CONFIG config{};
+        config.version = NV_ENC_CONFIG_VER;
 		config.gopLength = 10;
 		config.frameIntervalP = 1;
 		config.encodeCodecConfig.h264Config = h264_config;
 		NV_ENC_INITIALIZE_PARAMS params{};
+        params.version = NV_ENC_INITIALIZE_PARAMS_VER;
 		params.encodeGUID = NV_ENC_CODEC_H264_GUID;
 		params.encodeConfig = &config;
 		params.encodeWidth = width;
 		params.encodeHeight = height;
-		params.presetGUID = NV_ENC_PRESET_DEFAULT_GUID;
+        params.presetGUID = NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
 		params.enablePTD = 1; // Picture Type Decision
 		status = nvenc_.nvEncInitializeEncoder(encoder_, &params);
 	}
@@ -63,7 +65,7 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		params.version = NV_ENC_CREATE_BITSTREAM_BUFFER_VER;
 		params.memoryHeap = NV_ENC_MEMORY_HEAP_SYSMEM_CACHED;
 		params.size = width * height * 4;
-		nvenc_.nvEncCreateBitstreamBuffer(encoder_, &params);
+		status = nvenc_.nvEncCreateBitstreamBuffer(encoder_, &params);
 	}
 }
 

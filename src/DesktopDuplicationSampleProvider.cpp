@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-
+/*
 #include "DesktopDuplicationSampleProvider.h"
 
 _COM_SMARTPTR_TYPEDEF(IDXGIDevice,   __uuidof(IDXGIDevice));
@@ -112,3 +112,4 @@ HRESULT DesktopDuplicationSampleProvider::GetSample(IMFSample** ppSample) const
 		hr = (*ppSample)->AddBuffer(buffer_);
 	return hr;
 }
+*/

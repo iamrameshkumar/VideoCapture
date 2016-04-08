@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "SampleProvider.h"
-#include "GDISampleProvider.h"
-#include "DesktopDuplicationSampleProvider.h"
-#include "DirectXSampleProvider.h"
+//#include "GDISampleProvider.h"
+//#include "DesktopDuplicationSampleProvider.h"
+//#include "DirectXSampleProvider.h"
 #include "NvencEncoder.h"
 
 using namespace std;
@@ -26,8 +26,8 @@ _COM_SMARTPTR_TYPEDEF(IMFSinkWriter, __uuidof(IMFSinkWriter));
 const int VIDEO_WIDTH = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 const int VIDEO_HEIGHT = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 const UINT32 VIDEO_FPS = 30;
-const UINT64 VIDEO_FRAME_DURATION = 10'000'000 / VIDEO_FPS;
-const UINT32 VIDEO_BIT_RATE = 8'000'000;
+const UINT64 VIDEO_FRAME_DURATION = 10000000 / VIDEO_FPS;
+const UINT32 VIDEO_BIT_RATE = 8000000;
 const GUID   VIDEO_ENCODING_FORMAT = MFVideoFormat_H264;
 const GUID   VIDEO_INPUT_FORMAT = MFVideoFormat_ARGB32;
 const UINT32 VIDEO_FRAME_COUNT = 20 * VIDEO_FPS;
@@ -165,12 +165,13 @@ int main()
 	MFWrapper   mf_wrapper;
 
 	NvencEncoder nvenc_encoder(1600, 900);
+    return 0;
 	int64_t total_cycles;
-	DirectXSampleProvider dx_provider(nullptr);
-	GDISampleProvider gprovider(nullptr);
-	DesktopDuplicationSampleProvider dd_provider;
+	//DirectXSampleProvider dx_provider(nullptr);
+	//GDISampleProvider gprovider(nullptr);
+	//DesktopDuplicationSampleProvider dd_provider;
 
-#if false
+#if 0
 	IMFSample *s1, *s2;
 	IMFMediaBuffer *b1, *b2;
 	provider.GetSample(&s1);
@@ -206,7 +207,7 @@ int main()
 
 		total_cycles = counter.value();
 
-		hr = Capture(dd_provider, pSinkWriter, streamIndex, VIDEO_FRAME_COUNT, VIDEO_FPS);
+		//hr = Capture(dx_provider, pSinkWriter, streamIndex, VIDEO_FRAME_COUNT, VIDEO_FPS);
 		if (SUCCEEDED(hr)) {
 			total_cycles = counter.value() - total_cycles;
 			cerr << "Finalizing the SinkWriter" << endl;

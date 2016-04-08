@@ -17,8 +17,8 @@ HRESULT DirectXSampleProvider::GetSample(IMFSample ** ppSample) const
 	IMF2DBufferPtr p2dBuf;
 	BYTE * pPixels = nullptr;
 	DWORD length;
-	if (SUCCEEDED(hr))
-		hr = MFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, g_pSurface, false, &dbuf);
+	//if (SUCCEEDED(hr))
+		//hr = MFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, g_pSurface, false, &dbuf);
 	if (SUCCEEDED(hr)) {
 		p2dBuf = dbuf;
 		hr = p2dBuf->GetContiguousLength(&length);
@@ -74,8 +74,8 @@ HRESULT DirectXSampleProvider::GetSample1(IMFSample ** ppSample) {
 	IMFMediaBufferPtr dbuf;
 //	CComPtr<IMF2DBuffer> p2dBuf;
 //	BYTE * pPixels = nullptr;
-	if (SUCCEEDED(hr))
-		hr = MFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, g_pSurface, false, &dbuf); // kill me please
+	//if (SUCCEEDED(hr))
+		//hr = MFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, g_pSurface, false, &dbuf); // kill me please
 //	if (SUCCEEDED(hr))
 //		hr = dbuf->QueryInterface(__uuidof(IMF2DBuffer), reinterpret_cast<void**>(&p2dBuf));
 //	DWORD length;

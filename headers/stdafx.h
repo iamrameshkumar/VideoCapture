@@ -14,6 +14,8 @@
 
 #include <D3D11.h>
 
+#include <cstdint>
+
 
 _COM_SMARTPTR_TYPEDEF(IMFMediaBuffer, __uuidof(IMFMediaBuffer));
 _COM_SMARTPTR_TYPEDEF(IMF2DBuffer, __uuidof(IMF2DBuffer));
