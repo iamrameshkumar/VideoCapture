@@ -1,10 +1,8 @@
 ﻿#pragma once
 #include <DXGI1_2.h>
-#include <D3D11.h>
 
 #include "SampleProvider.h"
 
-_COM_SMARTPTR_TYPEDEF(ID3D11Device, __uuidof(ID3D11Device));
 _COM_SMARTPTR_TYPEDEF(IDXGIOutputDuplication, __uuidof(IDXGIOutputDuplication));
 _COM_SMARTPTR_TYPEDEF(ID3D11DeviceContext, __uuidof(ID3D11DeviceContext));
 _COM_SMARTPTR_TYPEDEF(ID3D11Texture2D, __uuidof(ID3D11Texture2D));

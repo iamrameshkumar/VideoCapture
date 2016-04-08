@@ -12,9 +12,13 @@
 #include <d3dx9tex.h>
 #include <evr.h>
 
+#include <D3D11.h>
+
 
 _COM_SMARTPTR_TYPEDEF(IMFMediaBuffer, __uuidof(IMFMediaBuffer));
 _COM_SMARTPTR_TYPEDEF(IMF2DBuffer, __uuidof(IMF2DBuffer));
+_COM_SMARTPTR_TYPEDEF(ID3D11Device, __uuidof(ID3D11Device));
+_COM_SMARTPTR_TYPEDEF(IDXGIResource, __uuidof(IDXGIResource));
 
 
 struct MFWrapper {

@@ -7,7 +7,7 @@ _COM_SMARTPTR_TYPEDEF(IDXGIAdapter,  __uuidof(IDXGIAdapter));
 _COM_SMARTPTR_TYPEDEF(IDXGIOutput,   __uuidof(IDXGIOutput));
 _COM_SMARTPTR_TYPEDEF(IDXGIOutput1,  __uuidof(IDXGIOutput1));
 _COM_SMARTPTR_TYPEDEF(IDXGISurface,  __uuidof(IDXGISurface));
-_COM_SMARTPTR_TYPEDEF(IDXGIResource, __uuidof(IDXGIResource));
+
 
 
 DesktopDuplicationSampleProvider::DesktopDuplicationSampleProvider() {
@@ -47,7 +47,7 @@ DesktopDuplicationSampleProvider::DesktopDuplicationSampleProvider() {
 	if (SUCCEEDED(hr))
 		device_->GetImmediateContext(&сontext_);
 	if (FAILED(hr))
-		throw std::runtime_error("could not construct DesktopDuplicationSampleProvider!");
+		throw std::runtime_error("could not construct DesktopDuplicationSampleProvider");
 }
 
 

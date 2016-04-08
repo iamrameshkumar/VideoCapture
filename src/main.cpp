@@ -4,6 +4,7 @@
 #include "GDISampleProvider.h"
 #include "DesktopDuplicationSampleProvider.h"
 #include "DirectXSampleProvider.h"
+#include "NvencEncoder.h"
 
 using namespace std;
 
@@ -163,6 +164,7 @@ int main()
 	COMWrapper com_wrapper;
 	MFWrapper   mf_wrapper;
 
+	NvencEncoder nvenc_encoder(1600, 900);
 	int64_t total_cycles;
 	DirectXSampleProvider dx_provider(nullptr);
 	GDISampleProvider gprovider(nullptr);
@@ -214,9 +216,6 @@ int main()
 			cerr << "Capture() failed" << endl;
 		}
 	}
-
-	MFShutdown();
-	CoUninitialize();
 
 	cout << "Total cycles elapsed for getting samples: " << cycles_elapsed_getsample << endl;
 	cout << "Total cycles elapsed for writing samples: " << cycles_elapsed_write << endl;
