@@ -164,8 +164,7 @@ int main()
 	COMWrapper com_wrapper;
 	MFWrapper   mf_wrapper;
 
-	NvencEncoder nvenc_encoder(1600, 900);
-    return 0;
+	NvencEncoder nvenc_encoder(VIDEO_WIDTH, VIDEO_HEIGHT);
 	int64_t total_cycles;
 	//DirectXSampleProvider dx_provider(nullptr);
 	//GDISampleProvider gprovider(nullptr);

@@ -33,17 +33,19 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		status = nvenc_.nvEncOpenEncodeSessionEx(&params, &encoder_);
 	}
 
-	/*uint32_t count = 0;
+	uint32_t count = 0;
 	if (status == NV_ENC_SUCCESS)
 		status = nvenc_.nvEncGetEncodeGUIDCount(encoder_, &count);
 	std::vector<GUID> guids(count);
 	if (status == NV_ENC_SUCCESS) {
-		status = nvenc_.nvEncGetEncodeGUIDs(encoder_, guids.data(), count, nullptr);
-	}*/ // TODO test capabilities before using them
+		status = nvenc_.nvEncGetEncodeGUIDs(encoder_, guids.data(), count, &count);
+	} // TODO test capabilities before using them
+    if (std::find(guids.begin(), guids.end(), NV_ENC_CODEC_H264_GUID) == guids.end())
+        throw std::runtime_error("H264 codec not supported by the GPU");
 
 	{
 		NV_ENC_CONFIG_H264 h264_config{};
-		//h264_config.idrPeriod
+        h264_config.idrPeriod = 2;
 		NV_ENC_CONFIG config{};
         config.version = NV_ENC_CONFIG_VER;
 		config.gopLength = 10;
@@ -52,7 +54,7 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		NV_ENC_INITIALIZE_PARAMS params{};
         params.version = NV_ENC_INITIALIZE_PARAMS_VER;
 		params.encodeGUID = NV_ENC_CODEC_H264_GUID;
-		params.encodeConfig = &config;
+		//params.encodeConfig = &config;
 		params.encodeWidth = width;
 		params.encodeHeight = height;
         params.presetGUID = NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
@@ -66,15 +68,17 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		params.memoryHeap = NV_ENC_MEMORY_HEAP_SYSMEM_CACHED;
 		params.size = width * height * 4;
 		status = nvenc_.nvEncCreateBitstreamBuffer(encoder_, &params);
+        output_buffer_ = params.bitstreamBuffer;
 	}
 }
 
 NvencEncoder::~NvencEncoder()
 {
+    NVENCSTATUS status;
 	if (nvenc_lib_) {
-		nvenc_.nvEncEncodePicture(nullptr, nullptr);
-		nvenc_.nvEncDestroyBitstreamBuffer(encoder_, output_buffer_);
-		nvenc_.nvEncDestroyEncoder(encoder_);
+		status = nvenc_.nvEncEncodePicture(encoder_, nullptr);
+		status = nvenc_.nvEncDestroyBitstreamBuffer(encoder_, output_buffer_);
+		status = nvenc_.nvEncDestroyEncoder(encoder_);
 		FreeLibrary(nvenc_lib_);
 	}
 }
