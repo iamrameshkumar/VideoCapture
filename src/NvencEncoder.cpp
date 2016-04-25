@@ -70,6 +70,14 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		status = nvenc_.nvEncCreateBitstreamBuffer(encoder_, &params);
         output_buffer_ = params.bitstreamBuffer;
 	}
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    desc.Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    desc.ArraySize = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+
+    HRESULT hr = device_->CreateTexture2D(&desc, nullptr, &texture_);
 }
 
 NvencEncoder::~NvencEncoder()
@@ -83,7 +91,7 @@ NvencEncoder::~NvencEncoder()
 	}
 }
 
-NVENCSTATUS NvencEncoder::write_frame(IDXGISurface & frame)
+NVENCSTATUS NvencEncoder::write_frame(std::ostream &out)
 {
 	NV_ENC_REGISTER_RESOURCE res_params{};
 	res_params.version = NV_ENC_REGISTER_RESOURCE_VER;
@@ -92,11 +100,11 @@ NVENCSTATUS NvencEncoder::write_frame(IDXGISurface & frame)
 
 	NV_ENC_MAP_INPUT_RESOURCE map_params{};
 	map_params.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-	map_params.inputResource = (void*)&frame;
+	map_params.inputResource = (void*)texture_;
 	status = nvenc_.nvEncMapInputResource(encoder_, &map_params);
 
-	DXGI_SURFACE_DESC desc{};
-	HRESULT hr = frame.GetDesc(&desc);
+	D3D11_TEXTURE2D_DESC desc{};
+	texture_->GetDesc(&desc);
 	// encode it
 	NV_ENC_PIC_PARAMS params{};
 	params.version = NV_ENC_PIC_PARAMS_VER;
@@ -115,8 +123,7 @@ NVENCSTATUS NvencEncoder::write_frame(IDXGISurface & frame)
 	lock_params.outputBitstream = output_buffer_;
 
 	nvenc_.nvEncLockBitstream(encoder_, &lock_params);
-	for (uint32_t i = 0; i < lock_params.bitstreamSizeInBytes; ++i)
-		std::cout << ((char*)lock_params.bitstreamBufferPtr)[i];
+    out.write((char*)lock_params.bitstreamBufferPtr, lock_params.bitstreamSizeInBytes);
 	
 	nvenc_.nvEncUnlockBitstream(encoder_, &output_buffer_);
 

@@ -195,33 +195,34 @@ int main()
 #endif
 	
 
-	{ // scope for SinkWriter lifetime
-		IMFSinkWriterPtr pSinkWriter;
-		DWORD streamIndex;
-		hr = InitializeSinkWriter(&pSinkWriter, &streamIndex);
-		if (FAILED(hr)) {
-			cerr << "couldn't initialize SinkWriter" << endl;
-			return 0;
-		}
+//	{ // scope for SinkWriter lifetime
+//		IMFSinkWriterPtr pSinkWriter;
+//		DWORD streamIndex;
+//		hr = InitializeSinkWriter(&pSinkWriter, &streamIndex);
+//		if (FAILED(hr)) {
+//			cerr << "couldn't initialize SinkWriter" << endl;
+//			return 0;
+//		}
 
-		total_cycles = counter.value();
+		//total_cycles = counter.value();
 
 		//hr = Capture(dx_provider, pSinkWriter, streamIndex, VIDEO_FRAME_COUNT, VIDEO_FPS);
-		if (SUCCEEDED(hr)) {
+		/*if (SUCCEEDED(hr)) {
 			total_cycles = counter.value() - total_cycles;
 			cerr << "Finalizing the SinkWriter" << endl;
 			hr = pSinkWriter->Finalize();
 			if (FAILED(hr)) cerr << "Failed to finalize the SinkWriter\n";
 		} else {
 			cerr << "Capture() failed" << endl;
-		}
-	}
+		}*/
+//	}
+    nvenc_encoder.write_frame();
 
 	cout << "Total cycles elapsed for getting samples: " << cycles_elapsed_getsample << endl;
 	cout << "Total cycles elapsed for writing samples: " << cycles_elapsed_write << endl;
-	double total_time = double(total_cycles) / counter.get_freq();
-	cout << "Total cycles elapsed for capturing:       " << total_cycles << " (" << total_time << " s.)" << endl;
-	cout << "Average capturing FPS is " << VIDEO_FRAME_COUNT / total_time << endl;
+	//double total_time = double(total_cycles) / counter.get_freq();
+	//cout << "Total cycles elapsed for capturing:       " << total_cycles << " (" << total_time << " s.)" << endl;
+	//cout << "Average capturing FPS is " << VIDEO_FRAME_COUNT / total_time << endl;
 
 	return 0;
 }
