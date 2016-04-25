@@ -109,5 +109,17 @@ NVENCSTATUS NvencEncoder::write_frame(IDXGISurface & frame)
 	
 	nvenc_.nvEncUnmapInputResource(encoder_, map_params.mappedResource);
 	nvenc_.nvEncUnregisterResource(encoder_, res_params.registeredResource);
+
+	NV_ENC_LOCK_BITSTREAM lock_params{};
+	lock_params.version = NV_ENC_LOCK_BITSTREAM_VER;
+	lock_params.outputBitstream = output_buffer_;
+
+	nvenc_.nvEncLockBitstream(encoder_, &lock_params);
+	for (uint32_t i = 0; i < lock_params.bitstreamSizeInBytes; ++i)
+		std::cout << ((char*)lock_params.bitstreamBufferPtr)[i];
+	
+	nvenc_.nvEncUnlockBitstream(encoder_, &output_buffer_);
+
+
 	return NV_ENC_SUCCESS;
 }
