@@ -10,36 +10,43 @@ static const LPCTSTR encodeLibName = TEXT("nvEncodeAPI.dll");
 
 typedef NVENCSTATUS(NVENCAPI * 	PNVENCODEAPICREATEINSTANCE)(NV_ENCODE_API_FUNCTION_LIST *functionList);
 
-NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
+NvencEncoder::NvencEncoder(uint32_t width, uint32_t height, ID3D11DevicePtr device)
 	: nvenc_lib_{ LoadLibrary(encodeLibName) }
+	, device_{ device }
 {
-	D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &device_, nullptr, nullptr);
 	if (!nvenc_lib_)
-		throw std::runtime_error((std::string("cannot load ") + (char*)encodeLibName));
+		throw std::runtime_error(std::string("cannot load ") + (const char*)encodeLibName);
 
 	PNVENCODEAPICREATEINSTANCE NvEncodeAPICreateInstance =
-		(PNVENCODEAPICREATEINSTANCE)GetProcAddress(nvenc_lib_, "NvEncodeAPICreateInstance" );
+		(PNVENCODEAPICREATEINSTANCE)GetProcAddress(nvenc_lib_, "NvEncodeAPICreateInstance");
 	if (!NvEncodeAPICreateInstance)
 		throw std::runtime_error("cannot load \"NvEncodeAPICreateInstance\" function");
+
     nvenc_.version = NV_ENCODE_API_FUNCTION_LIST_VER;
 	NVENCSTATUS status = NvEncodeAPICreateInstance(&nvenc_);
+	if (status != NV_ENC_SUCCESS)
+		throw std::runtime_error("could not create an instance of the NVENC API");
 
-	if (status == NV_ENC_SUCCESS) {
+	{
 		NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params {};
 		params.version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER;
 		params.device = device_;
 		params.deviceType = NV_ENC_DEVICE_TYPE_DIRECTX;
 
 		status = nvenc_.nvEncOpenEncodeSessionEx(&params, &encoder_);
+		if (status != NV_ENC_SUCCESS)
+			throw std::runtime_error("could not open encode session");
 	}
 
 	uint32_t count = 0;
-	if (status == NV_ENC_SUCCESS)
-		status = nvenc_.nvEncGetEncodeGUIDCount(encoder_, &count);
+	status = nvenc_.nvEncGetEncodeGUIDCount(encoder_, &count);
+	if (status != NV_ENC_SUCCESS)
+		throw std::runtime_error("could not get encode GUID count");
+
 	std::vector<GUID> guids(count);
-	if (status == NV_ENC_SUCCESS) {
-		status = nvenc_.nvEncGetEncodeGUIDs(encoder_, guids.data(), count, &count);
-	} // TODO test capabilities before using them
+	status = nvenc_.nvEncGetEncodeGUIDs(encoder_, guids.data(), count, &count);
+	if (status != NV_ENC_SUCCESS)
+		throw std::runtime_error("could not get encode GUIDs");
     if (std::find(guids.begin(), guids.end(), NV_ENC_CODEC_H264_GUID) == guids.end())
         throw std::runtime_error("H264 codec not supported by the GPU");
 
@@ -60,6 +67,8 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
         params.presetGUID = NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
 		params.enablePTD = 1; // Picture Type Decision
 		status = nvenc_.nvEncInitializeEncoder(encoder_, &params);
+		if (status != NV_ENC_SUCCESS)
+			throw std::runtime_error("could not initialize the encoder");
 	}
 
 	{
@@ -68,16 +77,11 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height)
 		params.memoryHeap = NV_ENC_MEMORY_HEAP_SYSMEM_CACHED;
 		params.size = width * height * 4;
 		status = nvenc_.nvEncCreateBitstreamBuffer(encoder_, &params);
+		if (status != NV_ENC_SUCCESS)
+			throw std::runtime_error("could not create bitstream buffer");
         output_buffer_ = params.bitstreamBuffer;
 	}
 
-    D3D11_TEXTURE2D_DESC desc{};
-    desc.Width  = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-    desc.Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-    desc.ArraySize = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-
-    HRESULT hr = device_->CreateTexture2D(&desc, nullptr, &texture_);
 }
 
 NvencEncoder::~NvencEncoder()
@@ -91,29 +95,37 @@ NvencEncoder::~NvencEncoder()
 	}
 }
 
-NVENCSTATUS NvencEncoder::write_frame(std::ostream &out)
+NVENCSTATUS NvencEncoder::write_frame(IDirect3DSurface9* surface, std::ostream &out)
 {
+	D3DSURFACE_DESC desc;
+	surface->GetDesc(&desc);
+
 	NV_ENC_REGISTER_RESOURCE res_params{};
 	res_params.version = NV_ENC_REGISTER_RESOURCE_VER;
+	res_params.resourceToRegister = surface;
+	res_params.resourceType = NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX;
+	res_params.width = desc.Width;
+	res_params.height = desc.Height;
+	//res_params.pitch = desc.Width;
+	res_params.bufferFormat = NV_ENC_BUFFER_FORMAT_NV12_PL;
 
 	NVENCSTATUS status = nvenc_.nvEncRegisterResource(encoder_, &res_params);
 
 	NV_ENC_MAP_INPUT_RESOURCE map_params{};
 	map_params.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-	map_params.inputResource = (void*)texture_;
+	//map_params.inputResource = (void*)texture;
 	status = nvenc_.nvEncMapInputResource(encoder_, &map_params);
 
-	D3D11_TEXTURE2D_DESC desc{};
-	texture_->GetDesc(&desc);
+	
 	// encode it
 	NV_ENC_PIC_PARAMS params{};
 	params.version = NV_ENC_PIC_PARAMS_VER;
 	params.inputWidth = desc.Width;
 	params.inputHeight = desc.Height;
 	params.inputPitch = params.inputWidth;
-	params.inputBuffer = nullptr;
+	params.inputBuffer = map_params.mappedResource;
 	params.outputBitstream = output_buffer_;
-	nvenc_.nvEncEncodePicture(encoder_, &params);
+	status = nvenc_.nvEncEncodePicture(encoder_, &params);
 	
 	nvenc_.nvEncUnmapInputResource(encoder_, map_params.mappedResource);
 	nvenc_.nvEncUnregisterResource(encoder_, res_params.registeredResource);

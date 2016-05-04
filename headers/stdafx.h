@@ -9,7 +9,7 @@
 #include <comdef.h>
 
 #include <d3d9.h>
-#include <d3dx9tex.h>
+//#include <d3dx9tex.h>
 #include <evr.h>
 
 #include <D3D11.h>

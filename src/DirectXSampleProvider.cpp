@@ -62,63 +62,11 @@ HRESULT DirectXSampleProvider::GetSample(IMFSample ** ppSample) const
 }
 
 
-HRESULT DirectXSampleProvider::GetSample1(IMFSample ** ppSample) {
+HRESULT DirectXSampleProvider::GetSample1(IDirect3DSurface9 ** ppSurface) {
 	//	return GetSample1(ppSample);
 	HRESULT hr = g_pd3dDevice->GetFrontBufferData(0, g_pSurface);
-	if (FAILED(hr)) {
-		std::cout << "couldn't get fb data" << std::endl;
-//		return hr;
-	}
-
-//	CComPtr<IMFMediaBuffer> dbuf;
-	IMFMediaBufferPtr dbuf;
-//	CComPtr<IMF2DBuffer> p2dBuf;
-//	BYTE * pPixels = nullptr;
-	//if (SUCCEEDED(hr))
-		//hr = MFCreateDXSurfaceBuffer(IID_IDirect3DSurface9, g_pSurface, false, &dbuf); // kill me please
-//	if (SUCCEEDED(hr))
-//		hr = dbuf->QueryInterface(__uuidof(IMF2DBuffer), reinterpret_cast<void**>(&p2dBuf));
-//	DWORD length;
-//	if (SUCCEEDED(hr))
-//		hr = p2dBuf->GetContiguousLength(&length);
-
-//	CComPtr<IMFMediaBuffer> pBuffer;
-//	if (SUCCEEDED(hr))
-//		MFCreateMemoryBuffer(length, &pBuffer);
-
-//	LONG pitch;
-//	if (SUCCEEDED(hr))
-//		hr = p2dBuf->Lock2D(&pPixels, &pitch);
-//	BYTE *pData;
-	// Lock the buffer and copy the video frame to the buffer.
-//	if (SUCCEEDED(hr))
-//		hr = pBuffer->Lock(&pData, nullptr, nullptr);
-//	if (SUCCEEDED(hr)) {
-//		hr = MFCopyImage(
-//			pData,           // Destination buffer.
-//			cbWidth,         // Destination stride.
-//			pPixels,         // First row in source image.
-//			cbWidth,         // Source stride.
-//			cbWidth,         // Image width in bytes.
-//			VIDEO_HEIGHT     // Image height in pixels.
-//			);
-//	}
-//	pBuffer->Unlock();
-//	p2dBuf->Unlock2D();
-	// Set the data length of the buffer.
-	if (SUCCEEDED(hr))
-		hr = dbuf->SetCurrentLength(cbWidth * VIDEO_HEIGHT);
-
-//	IUnknown * pUnkSurface;
-//	g_pSurface->QueryInterface(__uuidof(IUnknown), (void**)&pUnkSurface);
-	// Create a media sample and add the buffer to the sample.
-	if (SUCCEEDED(hr))
-		hr = MFCreateVideoSampleFromSurface(nullptr, ppSample);
-	(*ppSample)->AddRef();
-	if (SUCCEEDED(hr))
-		hr = (*ppSample)->AddBuffer(dbuf); // pBuffer
-	if (FAILED(hr))
-		std::cout << "getSample1 failed" << std::endl;
+	assert(SUCCEEDED(hr));
+	*ppSurface = g_pSurface;
 	return hr;
 }
 
@@ -132,17 +80,23 @@ DirectXSampleProvider::DirectXSampleProvider(HWND hWnd)
 
 	D3DPRESENT_PARAMETERS	d3dpp{ 0 };
 	d3dpp.Windowed = true;
-	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-	d3dpp.BackBufferFormat = ddm.Format;
-	d3dpp.BackBufferHeight = ddm.Height;
-	d3dpp.BackBufferWidth = ddm.Width;
-	d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
-	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	d3dpp.Flags = D3DPRESENTFLAG_VIDEO;
+	d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
+	d3dpp.BackBufferHeight = 480;
+	d3dpp.BackBufferWidth = 640;
+	d3dpp.BackBufferCount = 1;
+//	d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
+	d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
 	d3dpp.hDeviceWindow = hWnd;
-	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
-	d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+//	d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 
-	HRESULT hr = g_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &g_pd3dDevice);
+	HRESULT hr = g_pD3D->CreateDevice(D3DADAPTER_DEFAULT
+		, D3DDEVTYPE_HAL
+		, hWnd
+		, D3DCREATE_FPU_PRESERVE | D3DCREATE_MULTITHREADED | D3DCREATE_HARDWARE_VERTEXPROCESSING
+		, &d3dpp
+		, &g_pd3dDevice);
 
 	if (FAILED(hr))	{
 		std::cerr << "hr = " << hr << std::endl;

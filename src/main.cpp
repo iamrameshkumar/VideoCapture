@@ -3,8 +3,10 @@
 #include "SampleProvider.h"
 //#include "GDISampleProvider.h"
 //#include "DesktopDuplicationSampleProvider.h"
-//#include "DirectXSampleProvider.h"
+#include "DirectXSampleProvider.h"
 #include "NvencEncoder.h"
+
+#include <dxva2api.h>
 
 using namespace std;
 
@@ -13,9 +15,10 @@ using namespace std;
 #pragma comment (lib, "mfplat")
 #pragma comment (lib, "mfuuid")
 #pragma comment (lib, "d3d9")
-#pragma comment (lib, "d3dx9")
+//#pragma comment (lib, "d3dx9")
 #pragma comment (lib, "dxguid")
 #pragma comment (lib, "d3d11")
+#pragma comment (lib, "Dxva2") 
 
 _COM_SMARTPTR_TYPEDEF(IMFSample,     __uuidof(IMFSample));
 _COM_SMARTPTR_TYPEDEF(IMFMediaType,  __uuidof(IMFMediaType));
@@ -164,59 +167,47 @@ int main()
 	COMWrapper com_wrapper;
 	MFWrapper   mf_wrapper;
 
-	NvencEncoder nvenc_encoder(VIDEO_WIDTH, VIDEO_HEIGHT);
-	int64_t total_cycles;
-	//DirectXSampleProvider dx_provider(nullptr);
-	//GDISampleProvider gprovider(nullptr);
-	//DesktopDuplicationSampleProvider dd_provider;
 
-#if 0
-	IMFSample *s1, *s2;
-	IMFMediaBuffer *b1, *b2;
-	provider.GetSample(&s1);
-	provider.GetSample1(&s2);
-	DWORD n1, n2;
-	s1->GetBufferCount(&n1);
-	s2->GetBufferCount(&n2);
-	cout << "1st num = " << n1 << ", 2nd num = " << n2 << endl;
-	s1->GetBufferByIndex(0, &b1);
-	s2->GetBufferByIndex(0, &b2);
-	DWORD l1, l2;
-	b1->GetCurrentLength(&l1);
-	b2->GetCurrentLength(&l2);
-	cout << "1st len = " << l1 << ", 2nd len = " << l2 << endl;
-	BYTE *data1, *data2;
-	b1->Lock(&data1, nullptr, nullptr);
-	b2->Lock(&data2, nullptr, nullptr);
-	int i = data1[99999];
-	int j = data2[99999];
-	cout << "1st=" << i << ", 2nd=" << j << endl;
-	return 0;
-#endif
+
+	ID3D11DevicePtr device;
+	hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &device, nullptr, nullptr);
+
+	NvencEncoder nvenc_encoder(VIDEO_WIDTH, VIDEO_HEIGHT, device);
+	int64_t total_cycles;
+	DirectXSampleProvider dx_provider(nullptr);
+	//DesktopDuplicationSampleProvider dd_provider;
 	
 
-//	{ // scope for SinkWriter lifetime
-//		IMFSinkWriterPtr pSinkWriter;
-//		DWORD streamIndex;
-//		hr = InitializeSinkWriter(&pSinkWriter, &streamIndex);
-//		if (FAILED(hr)) {
-//			cerr << "couldn't initialize SinkWriter" << endl;
-//			return 0;
-//		}
+	IDirect3DSurface9* surface;
+	const D3DFORMAT D3DFMT_NV12 = (D3DFORMAT)MAKEFOURCC('N', 'V', '1', '2');
+	IDirectXVideoProcessorService                       *m_pDXVA2VideoProcessServices;
+	hr = DXVA2CreateVideoService(dx_provider.g_pd3dDevice, IID_PPV_ARGS(&m_pDXVA2VideoProcessServices));
+	hr = m_pDXVA2VideoProcessServices->CreateSurface(VIDEO_WIDTH, VIDEO_HEIGHT, 1,
+		D3DFMT_NV12, D3DPOOL_DEFAULT, 0, DXVA2_VideoProcessorRenderTarget, &surface, NULL);
 
-		//total_cycles = counter.value();
 
-		//hr = Capture(dx_provider, pSinkWriter, streamIndex, VIDEO_FRAME_COUNT, VIDEO_FPS);
-		/*if (SUCCEEDED(hr)) {
-			total_cycles = counter.value() - total_cycles;
-			cerr << "Finalizing the SinkWriter" << endl;
-			hr = pSinkWriter->Finalize();
-			if (FAILED(hr)) cerr << "Failed to finalize the SinkWriter\n";
-		} else {
-			cerr << "Capture() failed" << endl;
-		}*/
-//	}
-    nvenc_encoder.write_frame();
+
+
+
+
+
+
+
+	
+	//hr = dx_provider.GetSample1(&surface);
+
+	/*D3D11_TEXTURE2D_DESC desc{};
+	desc.Width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	desc.Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	desc.ArraySize = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+	desc.SampleDesc.Count = 1;
+
+	ID3D11Texture2DPtr texture;
+	hr = device->CreateTexture2D(&desc, nullptr, &texture);*/
+
+    nvenc_encoder.write_frame(surface);
 
 	cout << "Total cycles elapsed for getting samples: " << cycles_elapsed_getsample << endl;
 	cout << "Total cycles elapsed for writing samples: " << cycles_elapsed_write << endl;

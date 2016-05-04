@@ -8,8 +8,8 @@ class DirectXSampleProvider : public SampleProvider
 public:
 	DirectXSampleProvider(HWND hWnd);
 	HRESULT GetSample(IMFSample ** ppSample) const override;
-	HRESULT GetSample1(IMFSample** ppSample);
-private:
+	HRESULT GetSample1(IDirect3DSurface9 ** ppSurface);
+//private:
 	IDirect3DDevice9Ptr  g_pd3dDevice;
 	IDirect3DSurface9Ptr g_pSurface;
 	IDirect3D9Ptr        g_pD3D;
