@@ -51,21 +51,33 @@ NvencEncoder::NvencEncoder(uint32_t width, uint32_t height, ID3D11DevicePtr devi
         throw std::runtime_error("H264 codec not supported by the GPU");
 
 	{
-		NV_ENC_CONFIG_H264 h264_config{};
-        h264_config.idrPeriod = 2;
+		//NV_ENC_CONFIG_H264 h264_config{};
+        //h264_config.idrPeriod = 10;
 		NV_ENC_CONFIG config{};
         config.version = NV_ENC_CONFIG_VER;
-		config.gopLength = 10;
-		config.frameIntervalP = 1;
-		config.encodeCodecConfig.h264Config = h264_config;
+		
 		NV_ENC_INITIALIZE_PARAMS params{};
         params.version = NV_ENC_INITIALIZE_PARAMS_VER;
 		params.encodeGUID = NV_ENC_CODEC_H264_GUID;
 		//params.encodeConfig = &config;
-		params.encodeWidth = width;
-		params.encodeHeight = height;
-        params.presetGUID = NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID;
+        params.encodeWidth = width;
+        params.encodeHeight = height;
+        params.maxEncodeWidth = width;
+        params.maxEncodeHeight = height;
+        params.darWidth = width;
+        params.darHeight = height;
+        params.frameRateNum = 30;
+        params.frameRateDen = 1;
+        params.presetGUID = NV_ENC_PRESET_DEFAULT_GUID;
 		params.enablePTD = 1; // Picture Type Decision
+
+        NV_ENC_PRESET_CONFIG preset_config;
+
+        status = nvenc_.nvEncGetEncodePresetConfig(encoder_, params.encodeGUID, params.presetGUID, &preset_config);
+        config = preset_config.presetCfg;
+        config.gopLength = 10;
+        config.frameIntervalP = 1;
+        config.encodeCodecConfig.h264Config.idrPeriod = 10;
 		status = nvenc_.nvEncInitializeEncoder(encoder_, &params);
 		if (status != NV_ENC_SUCCESS)
 			throw std::runtime_error("could not initialize the encoder");
@@ -113,7 +125,8 @@ NVENCSTATUS NvencEncoder::write_frame(IDirect3DSurface9* surface, std::ostream &
 
 	NV_ENC_MAP_INPUT_RESOURCE map_params{};
 	map_params.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-	//map_params.inputResource = (void*)texture;
+    map_params.registeredResource = res_params.registeredResource;
+	map_params.inputResource = (void*)surface;
 	status = nvenc_.nvEncMapInputResource(encoder_, &map_params);
 
 	

@@ -182,7 +182,7 @@ int main()
 	const D3DFORMAT D3DFMT_NV12 = (D3DFORMAT)MAKEFOURCC('N', 'V', '1', '2');
 	IDirectXVideoProcessorService                       *m_pDXVA2VideoProcessServices;
 	hr = DXVA2CreateVideoService(dx_provider.g_pd3dDevice, IID_PPV_ARGS(&m_pDXVA2VideoProcessServices));
-	hr = m_pDXVA2VideoProcessServices->CreateSurface(VIDEO_WIDTH, VIDEO_HEIGHT, 1,
+	hr = m_pDXVA2VideoProcessServices->CreateSurface(VIDEO_WIDTH, VIDEO_HEIGHT, 0,
 		D3DFMT_NV12, D3DPOOL_DEFAULT, 0, DXVA2_VideoProcessorRenderTarget, &surface, NULL);
 
 
